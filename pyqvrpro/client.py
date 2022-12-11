@@ -1,12 +1,12 @@
 import base64
 import requests
 import untangle
-
+from datetime import datetime
 API_VERSION = '1.1.0'
 
 
 class Client(object):
-    def __init__(self, user, password, host, protocol='http', port=8080):
+    def __init__(self, user, password, host, protocol='http', port=8080, verify_SSL=True):
         """Initialize QVR client."""
 
         self._user = user
@@ -16,6 +16,7 @@ class Client(object):
         self._port = port
         self._authenticated = False
         self._session_id = None
+        self._verify_SSL = verify_SSL
 
         self.connect()
 
@@ -30,7 +31,7 @@ class Client(object):
             'serviceKey': 1
         }
 
-        response = requests.get(login_url, params=params)
+        response = requests.get(login_url, params=params, verify=self._verify_SSL)
 
         responseobj = untangle.parse(
             response.content.decode(response.encoding)).QDocRoot
@@ -67,6 +68,17 @@ class Client(object):
         """Get a snapshot from specified camera."""
 
         return self._get('/qvrpro/camera/snapshot/{}'.format(camera_guid))
+
+    def get_recording(self, camera_guid, channel_id, timestamp=datetime.utcnow(), pre_period=10000, post_period=10000):
+        """Get a recording from specified camera. Timestamp, pre and post period in UTC time"""
+        timestamp = int(timestamp.timestamp() * 1000)
+        print(timestamp)
+        params = {
+            "time": timestamp,
+            "post_period": pre_period,
+            "pre_period": post_period
+        }
+        return self._get(f'/qvrpro/camera/recordingfile/{camera_guid}/{channel_id}', params)
 
     def get_channel_list(self):
         """Get a list of available channels."""
@@ -128,7 +140,11 @@ class Client(object):
             return resp.json()
 
         if content_type == 'image/jpeg':
+            self._save_to_file(resp.content, '.jpeg')
             return resp.content
+
+        if content_type == 'video/mp4':
+            self._save_to_file(resp.content, '.mp4')
 
         return resp
 
@@ -144,7 +160,7 @@ class Client(object):
 
         url = self._get_endpoint_url(uri)
 
-        resp = requests.get(url, {**default_params, **params})
+        resp = requests.get(url, {**default_params, **params}, verify=self._verify_SSL)
 
         return self._parse_response(resp)
 
@@ -156,7 +172,7 @@ class Client(object):
 
         url = self._get_endpoint_url(uri)
 
-        resp = requests.post(url, json=json, params=params)
+        resp = requests.post(url, json=json, params=params, verify=self._verify_SSL)
 
         return self._parse_response(resp)
 
@@ -169,7 +185,7 @@ class Client(object):
 
         url = self._get_endpoint_url(uri)
 
-        resp = requests.put(url, params=params)
+        resp = requests.put(url, params=params, verify=self._verify_SSL)
 
         return self._parse_response(resp)
 
@@ -177,6 +193,11 @@ class Client(object):
         """Get endpoint url."""
         return '{}{}'.format(self._base_url, uri)
 
+    def _save_to_file(self, content, filetype):
+        timestamp_string = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        with open(f'./temp/{timestamp_string}{filetype}', 'wb') as file:
+            file.write(content)
+        
     @property
     def authenticated(self):
         """Get authentication status."""

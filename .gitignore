@@ -4,3 +4,5 @@ venv/
 build/
 dist/
 pyqvrpro.egg-info/
+.env
+temp
