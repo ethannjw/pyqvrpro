@@ -80,6 +80,10 @@ class Client(object):
         }
         return self._get(f'/qvrpro/camera/recordingfile/{camera_guid}/{channel_id}', params)
 
+    def get_recording_path(self, content, filepath):
+        self.save_to_file(content, filepath)
+        return filepath
+
     def get_channel_list(self):
         """Get a list of available channels."""
 
@@ -140,10 +144,10 @@ class Client(object):
             return resp.json()
 
         if content_type == 'image/jpeg':
-            self._save_to_file(resp.content, '.jpeg')
             return resp.content
 
         if content_type == 'video/mp4':
+            return resp.content
             self._save_to_file(resp.content, '.mp4')
 
         return resp
@@ -193,9 +197,8 @@ class Client(object):
         """Get endpoint url."""
         return '{}{}'.format(self._base_url, uri)
 
-    def _save_to_file(self, content, filetype):
-        timestamp_string = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        with open(f'./temp/{timestamp_string}{filetype}', 'wb') as file:
+    def save_to_file(self, content, filepath):
+        with open(filepath, 'wb') as file:
             file.write(content)
         
     @property
