@@ -17,7 +17,7 @@ def root_dir():  # pragma: no cover
 
 @app.route('/get_qvr_recording', methods=["GET"])
 def get_qvr_recording():
-    client = pyqvrpro.Client("camerauser", "48HKKfWZgg5xv3", 'qnap.eclaire.tk', 'https', 443, verify_SSL=False)
+    client = pyqvrpro.Client(os.environ.get("QVRPRO_USER"), os.environ.get("QVRPRO_PW"), os.environ.get('QVRPRO_HOST'), os.environ.get('QVRPRO_PROTOCOL'), os.environ.get('QVRPRO_PORT'), verify_SSL=False)
     cameras = client.list_cameras()
     camera_guid = cameras["datas"][0]["guid"]
     print(f"channel_guid: {camera_guid}")
