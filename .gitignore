@@ -6,3 +6,6 @@ dist/
 pyqvrpro.egg-info/
 .env
 temp
+pyqvrpro/__pycache__/
+recording/
+__pycache__/

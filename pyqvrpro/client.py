@@ -69,10 +69,9 @@ class Client(object):
 
         return self._get('/qvrpro/camera/snapshot/{}'.format(camera_guid))
 
-    def get_recording(self, camera_guid, channel_id, timestamp=datetime.utcnow(), pre_period=10000, post_period=10000):
+    def get_recording(self, timestamp, camera_guid, channel_id=0, pre_period=10000, post_period=10000):
         """Get a recording from specified camera. Timestamp, pre and post period in UTC time"""
-        timestamp = int(timestamp.timestamp() * 1000)
-        print(timestamp)
+
         params = {
             "time": timestamp,
             "post_period": pre_period,
@@ -148,7 +147,6 @@ class Client(object):
 
         if content_type == 'video/mp4':
             return resp.content
-            self._save_to_file(resp.content, '.mp4')
 
         return resp
 
@@ -164,6 +162,9 @@ class Client(object):
 
         url = self._get_endpoint_url(uri)
 
+        print(url)
+        print(default_params)
+        print(params)
         resp = requests.get(url, {**default_params, **params}, verify=self._verify_SSL)
 
         return self._parse_response(resp)
