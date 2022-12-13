@@ -29,7 +29,6 @@ def get_camera_guid(client):
 
 def get_now_timestamp():
     now = datetime.datetime.now()
-    # sec10ago = now - datetime.timedelta(seconds=10)
     return int(now.timestamp() * 1000)
     
 def get_offset_timestamp(offset):
@@ -73,6 +72,8 @@ def get_recording():
 
     if response.headers['content-type'] == 'video/mp4':
         return response.content, 200, {'Content-Type': 'video/mp4'}
+    
+    return "Invalid Response"
 
 @app.route('/generate_qvr_recording', methods=["GET"])
 def generate_qvr_recording():
