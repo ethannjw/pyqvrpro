@@ -9,3 +9,4 @@ temp
 pyqvrpro/__pycache__/
 recording/
 __pycache__/
+*.tar

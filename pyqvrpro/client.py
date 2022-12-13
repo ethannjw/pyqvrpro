@@ -69,13 +69,13 @@ class Client(object):
 
         return self._get('/qvrpro/camera/snapshot/{}'.format(camera_guid))
 
-    def get_recording(self, timestamp, camera_guid, channel_id=0, pre_period=10000, post_period=10000):
+    def get_recording(self, timestamp, camera_guid, channel_id=0, pre_period=10000, post_period=0):
         """Get a recording from specified camera. Timestamp, pre and post period in UTC time"""
 
         params = {
             "time": timestamp,
-            "post_period": pre_period,
-            "pre_period": post_period
+            "post_period": post_period,
+            "pre_period": pre_period
         }
         return self._get(f'/qvrpro/camera/recordingfile/{camera_guid}/{channel_id}', params)
 
@@ -167,7 +167,8 @@ class Client(object):
         print(params)
         resp = requests.get(url, {**default_params, **params}, verify=self._verify_SSL)
 
-        return self._parse_response(resp)
+        return resp
+        # return self._parse_response(resp)
 
     def _post(self, uri, json):
         """Do POST request."""

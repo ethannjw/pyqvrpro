@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import pyqvrpro
 import datetime
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request
 
 load_dotenv()
 def root_dir():  # pragma: no cover
@@ -27,18 +27,52 @@ def get_camera_guid(client):
     app.logger.info('Camera GUID: ', camera_guid)
     return camera_guid
 
-def get_10_sec_ago():
+def get_now_timestamp():
     now = datetime.datetime.now()
-    sec10ago = now - datetime.timedelta(seconds=10)
-    return int(sec10ago.timestamp() * 1000)
+    # sec10ago = now - datetime.timedelta(seconds=10)
+    return int(now.timestamp() * 1000)
     
+def get_offset_timestamp(offset):
+    now = datetime.datetime.now()
+    timestamp = now + datetime.timedelta(seconds=offset)
+    return int(timestamp.timestamp() * 1000)
+
 @app.route('/get_recording', methods=["GET"])
 def get_recording():
+    pre_period_param = request.args.get("pre_period", default="", type=int)
+    post_period_param = request.args.get("post_period", default="", type=int)
+    offset_param = request.args.get("offset", default="", type=int)
+    pre_period = pre_period_param * 1000 if pre_period_param != "" else 10000
+    post_period = post_period_param * 1000 if post_period_param != "" else 1000
+    offset = offset_param if offset_param != "" else 0
+    
     client = pyqvrpro.Client(app.config['QVRPRO_USER'], app.config['QVRPRO_PW'], app.config['QVRPRO_HOST'], app.config['QVRPRO_PROTOCOL'], app.config['QVRPRO_PORT'], verify_SSL=app.config['VERIFY_SSL'])
     camera_guid = get_camera_guid(client)
-    timestamp = get_10_sec_ago()
-    response =  client.get_recording(timestamp=timestamp, camera_guid=camera_guid, channel_id=0 )
-    return response, 200, {'Content-Type': 'video/mp4'}
+    timestamp = get_offset_timestamp(offset)
+
+    app.logger.info({
+        'request_time': datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
+        'timestamp': timestamp,
+        'pre_period': pre_period,
+        'post_period': post_period,
+        'offset': offset
+    })
+
+    response = client.get_recording(timestamp=timestamp, camera_guid=camera_guid, channel_id=0, pre_period=pre_period, post_period=post_period)
+
+    if response.headers['content-type'] == 'application/json':
+        # Means error
+        app.logger.error({
+            'error_response': response.json(),
+            'timestamp': timestamp,
+            'pre_period': pre_period,
+            'post_period': post_period,
+            'offset': offset
+        })
+        return response.json(), 404, {'Content-Type': 'application/json'}
+
+    if response.headers['content-type'] == 'video/mp4':
+        return response.content, 200, {'Content-Type': 'video/mp4'}
 
 @app.route('/generate_qvr_recording', methods=["GET"])
 def generate_qvr_recording():
@@ -48,7 +82,7 @@ def generate_qvr_recording():
     timestamp_string = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
     filename = f'{timestamp_string}.mp4'
     filepath = os.path.join(app.config['RECORDING_DIR'], filename)
-    timestamp = get_10_sec_ago()
+    timestamp = get_now_timestamp()
     
     recording =  client.get_recording(timestamp=timestamp, camera_guid=camera_guid, channel_id=0 )
 
@@ -59,18 +93,7 @@ def generate_qvr_recording():
 
 @app.route('/get_recording/<path:filename>', methods=["GET"])
 def get_recording_file(filename):
-    response =  send_from_directory(app.config['RECORDING_DIR'], filename)
-
-    @response.call_on_close
-    def on_close():
-        app.logger.info(f"Trying to delete file: {os.path.join(app.config['RECORDING_DIR'], filename)}")
-        if os.path.exists(os.path.join(app.config['RECORDING_DIR'], filename)):
-            os.remove(os.path.join(app.config['RECORDING_DIR'], filename))
-            app.logger.info(f"Deleted: {os.path.join(app.config['RECORDING_DIR'], filename)}")
-        else:
-            app.logger.error("Error deleting file!")
-    
-    return response
+    return send_from_directory(app.config['RECORDING_DIR'], filename)
 
 @app.route('/delete_recordings/<path:filename>', methods=["GET", "POST"])
 def delete_recording(filename):
