@@ -107,6 +107,10 @@ def delete_recording(filename):
         app.logger.error("Error deleting file!")
         return "ERROR"
 
+@app.route('/health_check', methods=["GET"])
+def get_health_check():
+    health_check_res = {"status": "healthy"}
+    return health_check_res, 200, {'Content-Type': 'application/json'}
 
 if __name__ == '__main__':
    app.run(debug = True)
