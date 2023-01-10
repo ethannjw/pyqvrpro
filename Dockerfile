@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM arm64v8/python:3.8-slim-buster
+FROM python:3.8-slim-buster
 RUN pip install --upgrade pip
 
 COPY requirements.txt requirements.txt
@@ -13,5 +13,7 @@ RUN pip install -r requirements.txt
 ENV FLASK_APP=run.py
 ENV FLASK_RUN_PORT=5000
 ENV FLASK_RUN_HOST=0.0.0.0
+
+HEALTHCHECK CMD curl --fail http://localhost:5000/health_check || exit 1
 
 CMD ["python", "-m", "flask", "run"]
