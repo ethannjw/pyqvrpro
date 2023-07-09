@@ -8,6 +8,7 @@ Dockerised Flask API wrapper for the qvr pro recorder. WIP
    - Gets the recordings directly with offset (sec) pre_period (sec) post_period (sec) params TBA
  - /get_recording/:filename
  - /delete_recording/:filename
+ - /list_cameras
  - /health_check
 
 ## Use a virtual env

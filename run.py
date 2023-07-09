@@ -40,7 +40,7 @@ def get_offset_timestamp(offset):
     timestamp = now + datetime.timedelta(seconds=offset)
     return int(timestamp.timestamp() * 1000)
 
-@app.route('/list_recordings', methods=["GET"])
+@app.route('/list_cameras', methods=["GET"])
 def list_recording():
     client = pyqvrpro.Client(app.config['QVRPRO_USER'], app.config['QVRPRO_PW'], app.config['QVRPRO_HOST'], app.config['QVRPRO_PROTOCOL'], app.config['QVRPRO_PORT'], verify_SSL=app.config['VERIFY_SSL'])
     response = client.list_cameras()
