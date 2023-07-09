@@ -20,11 +20,15 @@ app.config['VERIFY_SSL'] = False if os.environ.get("VERIFY_SSL") == '0' else Tru
 def get_camera_guid(client):
     camera_guid = os.environ.get("CAMERA_GUID")
     if camera_guid == '':
-        app.logger("Getting new camera guid")
+        app.logger.info("Getting new camera guid")
         cameras = client.list_cameras()
-        camera_guid = cameras["datas"][0]["guid"]
-        app.logger.info(f"channel_guid: {camera_guid}")
-    app.logger.info('Camera GUID: ', camera_guid)
+        if cameras and len(cameras["datas"]) > 0:
+            camera_guid = cameras["datas"][0]["guid"]
+            app.logger.info(f"camera__guid: {camera_guid}")
+            os.environ["CAMERA_GUID"] = str(camera_guid)
+        else:
+            app.logger.error(f"Camera guid not found cameras: {cameras}")
+
     return camera_guid
 
 def get_now_timestamp():
@@ -35,6 +39,12 @@ def get_offset_timestamp(offset):
     now = datetime.datetime.now()
     timestamp = now + datetime.timedelta(seconds=offset)
     return int(timestamp.timestamp() * 1000)
+
+@app.route('/list_recordings', methods=["GET"])
+def list_recording():
+    client = pyqvrpro.Client(app.config['QVRPRO_USER'], app.config['QVRPRO_PW'], app.config['QVRPRO_HOST'], app.config['QVRPRO_PROTOCOL'], app.config['QVRPRO_PORT'], verify_SSL=app.config['VERIFY_SSL'])
+    response = client.list_cameras()
+    return response.json(), 200, {'Content-Type': 'application/json'}
 
 @app.route('/get_recording', methods=["GET"])
 def get_recording():
@@ -47,6 +57,12 @@ def get_recording():
     
     client = pyqvrpro.Client(app.config['QVRPRO_USER'], app.config['QVRPRO_PW'], app.config['QVRPRO_HOST'], app.config['QVRPRO_PROTOCOL'], app.config['QVRPRO_PORT'], verify_SSL=app.config['VERIFY_SSL'])
     camera_guid = get_camera_guid(client)
+    
+    if camera_guid == '':
+        return {
+            'error': 'Camera GUID not provided and unable to retrieve camera GUID'
+        }, 404, {'Content-Type': 'application/json'}
+    
     timestamp = get_offset_timestamp(offset)
 
     app.logger.info({
@@ -59,8 +75,8 @@ def get_recording():
 
     response = client.get_recording(timestamp=timestamp, camera_guid=camera_guid, channel_id=0, pre_period=pre_period, post_period=post_period)
 
+    # If the response is a type application/json, it means error has occurred
     if response.headers['content-type'] == 'application/json':
-        # Means error
         app.logger.error({
             'error_response': response.json(),
             'timestamp': timestamp,

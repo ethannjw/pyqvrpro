@@ -127,6 +127,7 @@ class Client(object):
 
     def _parse_response(self, resp):
         """Return response depending on content type."""
+
         if not resp.ok:
             self._authenticated = False
             raise QVRResponseError(resp.content.decode('UTF-8'))
@@ -143,10 +144,10 @@ class Client(object):
             return resp.json()
 
         if content_type == 'image/jpeg':
-            return resp.content
+            return resp
 
         if content_type == 'video/mp4':
-            return resp.content
+            return resp
 
         return resp
 
@@ -162,13 +163,9 @@ class Client(object):
 
         url = self._get_endpoint_url(uri)
 
-        print(url)
-        print(default_params)
-        print(params)
         resp = requests.get(url, {**default_params, **params}, verify=self._verify_SSL)
-
-        return resp
-        # return self._parse_response(resp)
+        print("resp", resp)
+        return self._parse_response(resp)
 
     def _post(self, uri, json):
         """Do POST request."""
